@@ -135,28 +135,51 @@ def build_good_chart(df, display_name, types):
         "flying":   "#A890F0", "psychic":  "#F85888", "bug":      "#A8B820",
         "rock":     "#B8A038", "ghost":    "#705898", "dragon":   "#7038F8",
         "dark":     "#705848", "steel":    "#B8B8D0", "fairy":    "#EE99AC",
-    }
+   }
+ 
+# ── START: Replace this with your radar chart, then update ──
 
-    # ── START: Replace this with your radar chart, then update the color ───────
+    # 1. Prepare data
+    stats  = df["stat"].tolist()
+    values = df["value"].tolist()
+    stats_closed  = stats  + [stats[0]]
+    values_closed = values + [values[0]]
 
-    # Step 1 — paste the radar chart code from the lab doc here.
+    # 2. Get the color and convert Hex to RGBA
+    hex_color = TYPE_COLORS[types[0]]   # e.g. "#F08030"
+    
+    # Strip the # and convert each pair of hex digits to an integer (0–255)
+    r = int(hex_color[1:3], 16)
+    g = int(hex_color[3:5], 16)
+    b = int(hex_color[5:7], 16)
 
-    # Step 2 — replace the hardcoded fillcolor and line color with the
-    #           color for this Pokémon's primary type. For example, if the
-    #           primary type is "fire" the color would be TYPE_COLORS["fire"].
-    #           Use types[0] to always get the primary type dynamically.
+    fill_color_str   = f"rgba({r}, {g}, {b}, 0.3)"   # semi-transparent for the fill
+    border_color_str = f"rgba({r}, {g}, {b}, 1.0)"   # fully opaque for the line
 
-    good_fig = px.pie(
-        df,
-        names="stat",
-        values="value",
-        color="stat",
+    # 3. Create the Radar Chart
+    good_fig = go.Figure()
+
+    good_fig.add_trace(go.Scatterpolar(
+        r=values_closed,
+        theta=stats_closed,
+        fill="toself",
+        fillcolor=fill_color_str,
+        line=dict(color=border_color_str),
+        name=display_name,
+    ))
+
+    good_fig.update_layout(
+        title=f"{display_name} — Base Stat Radar",
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 160],
+            )
+        ),
     )
 
-
-    # ── END ────────────────────────────────────────────────────────────────────
+    # ── END ─────────────────────────
     return apply_dark_theme(good_fig)
-
 
 def build_my_chart(df, display_name, types):
     """
@@ -167,12 +190,33 @@ def build_my_chart(df, display_name, types):
     Pick a chart type different from both the pie and the radar.
     Your chart should work well for any Pokémon, not just Charizard.
     """
-    # ── Replace this placeholder with your own chart ───────────────────────────
-    fig = go.Figure()
-    fig.update_layout(
-        title="Your chart goes here — edit build_my_chart() in app.py",
+    
+# ── Replace this placeholder with your own chart ─────
+    
+    # 1. Sort the data so the strongest stats are at the top
+    # We use .copy() to ensure we don't modify the original dataframe
+    df_sorted = df.sort_values(by="value", ascending=True)
+
+    # 2. Create a Horizontal Bar Chart
+    # 'Viridis' is a standard colorblind-safe scale
+    fig = px.bar(
+        df_sorted,
+        x="value",
+        y="stat",
+        orientation='h',
+        title=f"{display_name}: Stat Rankings",
+        labels={"value": "Base Stat Value", "stat": "Stat Category"},
+        color="value",
+        color_continuous_scale="Viridis" 
     )
-    # ── End of placeholder ─────────────────────────────────────────────────────
+
+    # 3. Final layout tweaks
+    fig.update_layout(
+        xaxis_range=[0, 160],
+        showlegend=False,
+        coloraxis_showscale=False  # Keeps the chart clean
+    )
+
     return apply_dark_theme(fig)
 
 
